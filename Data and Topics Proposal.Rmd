@@ -1,0 +1,76 @@
+---
+title: "Data and Topics Proposal"
+author: "Matthew Fox, Sam Sheaffer, Jangmin Song"
+date: "2025-03-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+```
+
+###  Group discussion
+
+The dataset we are proposing to use deals with the personal information of individuals who were contacted during a Portuguese banking campaign. The goal of this original data collection was to predict if individuals would be inclined to subscribe to a long-term deposit. We are planning to use a clustering technique to see if the similarities in the individuals can be used to determine their interests. The application of this project would be an attempt to predict individual tendencies based on their similarities to others who provided the same information. We chose this dataset because it contained many different variables to work with and was generally pretty interesting!
+
+There are roughly 45,000 data points and seventeen variables in this dataset, with the population of interest being Portuguese adults with bank accounts. The variables are spread between numerical, categorical, and ordinal. The age ranges from 18-95, the balance ranges from -8,019-102,127. Education levels stretch from unknown to primary to secondary to tertiary. The loan column is either yes or no, indicating if the individual has taken out a loan or not. The occupation column is categorical and just lists the occupation of the individual you have.
+
+Here is the link to the data: 
+
+https://archive.ics.uci.edu/dataset/222/bank+marketing
+
+### Visualizing the Data 
+```{r}
+bank_full <- read.csv("bank-full.csv", sep=";", header=TRUE)
+
+#install.packages("mosaic")
+library(mosaic)
+
+#mplot(bank_full) #We used it
+```
+
+```{r}
+
+age_histogram <- gf_histogram(~ age, data = bank_full, binwidth = 3.8) |>
+  gf_labs(title = "Age Groups in the Dataset",
+          x = "Age",
+          y = "Frequency")
+age_histogram
+```
+
+```{r}
+duration_balance_scatter <- gf_point(balance ~ duration, data = bank_full) |> 
+  gf_labs(title = "Duration vs. Balance",
+          x = "Duration of Last Phone Call",
+          y = "Average Yearly Balance")
+duration_balance_scatter
+```
+
+```{r}
+loan_age_violin <- gf_violin(age ~ loan, data = bank_full) |> 
+  gf_labs(title = "Violin Plot of Loans by Age",
+          x = "People with a Personal Loan",
+          y = "Age")
+loan_age_violin
+```
+
+
+### Description of backup and other datasets we found: 
+Our backup dataset deals with the presidential primary polling results by voting precinct in the United States from 2016. We liked this data for similar reasons to the Portugese Banking dataset and would perform clustering techniques to it as well if we need to switch to this dataset.
+
+Here is the link to the dataset: 
+
+https://catalog.data.gov/dataset/2016-presidential-primary-election-results-by-precinct-complete-ecanvass-dataset
+
+These are links to the additional datasets that Sam, Jangmin, and I looked at. I found the first and last, Sam found the second, and Jangmin found the third:
+
+https://github.com/fivethirtyeight/covid-19-polls/blob/master/covid_approval_polls.csv
+
+https://github.com/fivethirtyeight/data/blob/master/poll-quiz-guns/guns-polls.csv
+
+https://github.com/fivethirtyeight/data/tree/master/russia-investigation
+
+https://github.com/fivethirtyeight/data/tree/master/nba-draft-2015
+
+
