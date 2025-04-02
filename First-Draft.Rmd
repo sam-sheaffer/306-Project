@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2) 
 library(dplyr) 
 library(broom)
+library(tibble)
 ```
 
 ```{r}
@@ -20,32 +21,77 @@ bank_full <- bank_full |>
 ```
 
 ```{r convert-to-numeric}
-bank_full$job <- as.character(as.numeric(factor(bank_full$job)))
-bank_full$marital <- as.character(as.numeric(factor(bank_full$marital)))
-bank_full$education <- as.character(as.numeric(factor(bank_full$education)))
-bank_full$default <- as.character(as.numeric(factor(bank_full$default)))
-bank_full$housing <- as.character(as.numeric(factor(bank_full$housing)))
-bank_full$loan <- as.character(as.numeric(factor(bank_full$loan)))
+bank_full$job <- as.numeric(factor(bank_full$job))
+bank_full$marital <- as.numeric(factor(bank_full$marital))
+bank_full$education <- as.numeric(factor(bank_full$education))
+bank_full$default <- as.numeric(factor(bank_full$default))
+bank_full$housing <- as.numeric(factor(bank_full$housing))
+bank_full$loan <- as.numeric(factor(bank_full$loan))
   
 ```
 
 ```{r k-means}
-bank_full_management <- bank_full |>
-  filter(job == 5)
+#bank_full_management <- bank_full |>
+  #filter(job == 5)
+
+#random_sample <- bank_full[sample(nrow(bank_full), 100), ]
 
 set.seed(1)
-random_sample <- bank_full[sample(nrow(bank_full), 100), ]
+bank_full_balance_scaled <- bank_full |>
+  mutate(balance = scale(bank_full$balance)) |>
+  mutate(age = scale(bank_full$age))
 
-km_out = kmeans(bank_full, 2, nstart = 20)
+bank_full_scaled <- scale(bank_full)
+bank_full_scaled <- bank_full_scaled[, -8]
+
+km_out = kmeans(bank_full_balance_scaled, 2, nstart = 20)
 km_clusters = km_out$cluster
-df = table(km_clusters, bank_full$loan)
+bank_full_scaled <- cbind(bank_full_scaled, enframe(bank_full$loan))
+bank_full_scaled <- bank_full_scaled[, -8]
+df = table(km_clusters, bank_full_balance_scaled$loan)
 
 
 
-assignments <- augment(km_out, bank_full)
+assignments <- augment(km_out, bank_full_balance_scaled)
+
+assignments$value <- as.character(assignments$value)
 ggplot(data = assignments, aes(x = balance, y = age, color = .cluster)) +
   geom_point() + labs(color = "Cluster Assignment",
                       title = "K-Means Clustering Results with K = 2",
                       shape = "loan")
+```
+```{r}
+bank_full$loan <- as.character(assignments$loan)
+
+ggplot(data = bank_full, aes(x = balance, y = age, color = loan)) +
+  geom_point() + labs(color = "Loan",
+                      title = "K-Means Clustering Results with K = 2")
+```
+Clustering with education:
+```{r}
+bank_full_scaled <- scale(bank_full)
+bank_full_scaled <- bank_full_scaled[, -2]
+
+km_out = kmeans(bank_full_scaled, 12, nstart = 20)
+km_clusters = km_out$cluster
+bank_full_scaled <- cbind(bank_full_scaled, enframe(bank_full$job))
+bank_full_scaled <- bank_full_scaled[, -8]
+df = table(km_clusters, bank_full_scaled$value)
+
+
+
+assignments <- augment(km_out, bank_full_scaled)
+
+assignments$value <- as.character(assignments$value)
+ggplot(data = assignments, aes(x = balance, y = age, color = .cluster)) +
+  geom_point() + labs(color = "Cluster Assignment",
+                      title = "K-Means Clustering Results with K = 2",
+                      shape = "loan")
+
+ggplot(data = bank_full, aes(x = balance, y = age, color = job)) +
+  geom_point() + labs(color = "Job",
+                      title = "K-Means Clustering Results with K = 2")
+
+write.csv(df, "df.csv", row.names = FALSE)
 ```
 
