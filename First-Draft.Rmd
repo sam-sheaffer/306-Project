@@ -1,6 +1,8 @@
 ---
-title: "306 First Draft: Sam, Jangmin, Matt"
-output: html_document
+title: '306 First Draft: Sam, Jangmin, Matt'
+output:
+  pdf_document: default
+  html_document: default
 date: "2025-04-01"
 ---
 
