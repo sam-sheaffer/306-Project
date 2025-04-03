@@ -114,37 +114,7 @@ bank_full <- bank_full |>
                 ~ as.numeric(factor(.x))))
 ```
 
-```{r}
-# Optional: Take a random sample for speed
-set.seed(1)
-bank_sample <- bank_full[sample(nrow(bank_full), 100), ]
-
-# Scale the numeric dataset before clustering
-df_scaled <- scale(bank_sample)
-
-# Run K-means clustering
-km_out <- kmeans(df_scaled, centers = 2, nstart = 20)
-#km_out <- kmeans(bank_sample, centers = 2, nstart = 20)
-km_clusters <- km_out$cluster
-table(km_clusters, bank_sample$loan)
-
-# Add cluster assignments to dataset
-assignments <- augment(km_out, bank_sample)
-```
-
-```{r}
-# Visualize clusters
-ggplot(assignments, aes(x = balance, y = age, color = .cluster)) +
-  geom_point(size = 3, alpha = 0.7) +
-  labs(
-    title = "K-Means Clustering Results (k = 2)",
-    x = "Balance",
-    y = "Age",
-    color = "Cluster"
-  ) +
-  theme_minimal()
-```
-
+#ROC Curve for Least Squares Classification
 ```{r}
 # Read the dataset and select predictors plus the target 'y'
 bank <- read.csv("bank-full.csv", sep = ";", header = TRUE)
@@ -195,55 +165,7 @@ auc_val <- auc(roc_obj)
 print(auc_val)
 ```
 
-```{r}
-# Read the dataset and select key variables (you can include age if needed)
-bank <- read.csv("bank-full.csv", sep = ";", header = TRUE)
-# Filter for the "management" job (change to the desired job category)
-bank_management <- bank %>%
-  filter(job == "management") %>%
-  select(marital, education, age, balance, y)
-
-bank_management <- bank_management[sample(nrow(bank_management), 100), ]
-
-# Convert categorical variables to numeric
-bank_management$marital <- as.numeric(factor(bank_management$marital))
-bank_management$education <- as.numeric(factor(bank_management$education))
-bank_management$age <- as.numeric(factor(bank_management$age))
-bank_management$y <- as.numeric(factor(bank_management$y))  # Assuming y is the loan status
-
-# Scale the data to ensure all features contribute equally
-bank_management_scaled <- scale(bank_management)
-
-
-# Perform k-means clustering with k = 2 (you can change centers as needed)
-set.seed(123)
-km_mgmt <- kmeans(bank_management_scaled, centers = 2, nstart = 20)
-
-# Add the cluster assignments to the subset
-bank_management$cluster <- factor(km_mgmt$cluster)
-
-# Visualize the clustering results using a scatter plot
-ggplot(bank_management, aes(x = balance, y = age, color = cluster)) +
-  geom_point(size = 3, alpha = 0.8) +
-  labs(title = "K-means Clustering for Management Job", 
-       x = "Balance",
-       y = "age",
-       color = "Cluster") +
-  theme_minimal()
-```
-
-```{r}
-library(dplyr)
-bank_management %>%
-  group_by(cluster) %>%
-  summarize(
-    avg_age       = mean(age),
-    avg_balance   = mean(balance),
-    avg_education = mean(education),  # if you included it in the model
-    prop_loan     = mean(y)          # if y is numeric 0/1
-  )
-```
-
+#Clustering by Age and Balance Faceted by Job
 ```{r}
 library(dplyr)
 library(ggplot2)
@@ -326,47 +248,34 @@ It shows that as the age goes up, you have more money in the bank account
 
 #Box Plot by jobs to see whether they have loans or not
 ```{r}
-bank_self_employed <- bank %>%
-  filter(job == "self-employed")
-
-bank_blue_color <- bank %>%
-  filter(job == "blue-collar")
-
-ggplot(bank_self_employed, aes(balance, y)) + 
-  geom_boxplot() + 
-  labs(title = "Box Plot of Loan vs. Balance of Self-Employed", x = "Loans", y = "Balance")
-
-
-ggplot(bank_blue_color, aes(balance, y)) + 
-  geom_boxplot() + 
-  labs(title = "Box Plot of Loan vs. Balance of Blue Colored", x = "Loans", y = "Balance")
-
 bank_blue_self <- bank %>%
   filter(job == "blue-collar" | job == "self-employed")
 
-ggplot(bank_blue_self, aes(y, balance, fill=y)) + 
+ggplot(bank_blue_self, aes(loan, balance, fill=loan)) + 
   geom_boxplot() + 
   facet_wrap(~job) +
   labs(title = "Box Plot of Loan vs. Balance of Blue Colored", x = "Loans", y = "Balance")
 ```
 
 ```{r}
-bank_self_employed <- bank %>%
-  filter(job == "marital")
+bank_marital <- bank %>%
+  mutate(marital = case_when(
+    marital == "married" ~ "married",
+    marital %in% c("divorced", "single") ~ "not married",
+    TRUE ~ marital  # For any other value, keep it unchanged
+  ))
 
-bank_blue_color <- bank %>%
-  filter(job == "blue-collar")
-
-ggplot(bank, aes(age, y)) + 
+ggplot(bank, aes(age, loan)) + 
   geom_boxplot() +
   #+geom_point(shape = bank$marital)
   geom_jitter(shape = bank$marital, size=1.5, alpha=0.9) +
   labs(shape = "Marital Status") 
 
-ggplot(bank, aes(x = y, y = age)) +
+
+ggplot(bank_marital, aes(x = loan, y = age)) +
   # One boxplot per loan status (yes/no)
   geom_boxplot(outlier.shape = NA) +
-  geom_jitter(aes(shape = marital), 
+  geom_jitter(aes(color = marital), 
               width = 0.3,   # spread out points horizontally
               size = 2, 
               alpha = 0.8) +
@@ -375,9 +284,8 @@ ggplot(bank, aes(x = y, y = age)) +
        shape = "Marital Status",
        x = "Loan Status",
        y = "Age")  + 
-  scale_shape_manual(values = c("divorced" = 1, "married" = 2, "single" = 3))
+  scale_shape_manual(values = c("married" = 1, "not married" = 2))
 ```
 Single have higher percentage of having loan than married. 
-
 
 The question sounds like more classification rather than clustering. 
