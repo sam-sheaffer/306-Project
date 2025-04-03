@@ -1,8 +1,8 @@
 ---
 title: '306 First Draft: Sam, Jangmin, Matt'
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 date: "2025-04-01"
 ---
 
@@ -58,7 +58,7 @@ km_clusters = km_out$cluster
 
 
 
-#assignments <- augment(km_out, bank_full_balance_scaled)
+assignments <- augment(km_out, bank_full_balance_scaled)
 
 #assignments$value <- as.character(assignments$value)
 #ggplot(data = assignments, aes(x = balance, y = age, color = .cluster)) +
@@ -66,6 +66,7 @@ km_clusters = km_out$cluster
 #                      title = "K-Means Clustering Results with K = 2",
 #                      shape = "loan")
 ```
+
 ```{r}
 bank_full$loan <- as.character(assignments$loan)
 
@@ -75,30 +76,30 @@ ggplot(data = bank_full, aes(x = balance, y = age, color = loan)) +
 ```
 Clustering with education:
 ```{r}
-bank_full_scaled <- scale(bank_full)
-bank_full_scaled <- bank_full_scaled[, -2]
-
-km_out = kmeans(bank_full_scaled, 12, nstart = 20)
-km_clusters = km_out$cluster
-bank_full_scaled <- cbind(bank_full_scaled, enframe(bank_full$job))
-bank_full_scaled <- bank_full_scaled[, -8]
-df = table(km_clusters, bank_full_scaled$value)
-
-
-
-assignments <- augment(km_out, bank_full_scaled)
-
-assignments$value <- as.character(assignments$value)
-ggplot(data = assignments, aes(x = balance, y = age, color = .cluster)) +
-  geom_point() + labs(color = "Cluster Assignment",
-                      title = "K-Means Clustering Results with K = 2",
-                      shape = "loan")
-
-ggplot(data = bank_full, aes(x = balance, y = age, color = job)) +
-  geom_point() + labs(color = "Job",
-                      title = "K-Means Clustering Results with K = 2")
-
-write.csv(df, "df.csv", row.names = FALSE)
+# bank_full_scaled <- scale(bank_full)
+# bank_full_scaled <- bank_full_scaled[, -2]
+# 
+# km_out = kmeans(bank_full_scaled, 12, nstart = 20)
+# km_clusters = km_out$cluster
+# bank_full_scaled <- cbind(bank_full_scaled, enframe(bank_full$job))
+# bank_full_scaled <- bank_full_scaled[, -8]
+# df = table(km_clusters, bank_full_scaled$value)
+# 
+# 
+# 
+# assignments <- augment(km_out, bank_full_scaled)
+# 
+# assignments$value <- as.character(assignments$value)
+# ggplot(data = assignments, aes(x = balance, y = age, color = .cluster)) +
+#   geom_point() + labs(color = "Cluster Assignment",
+#                       title = "K-Means Clustering Results with K = 2",
+#                       shape = "loan")
+# 
+# ggplot(data = bank_full, aes(x = balance, y = age, color = job)) +
+#   geom_point() + labs(color = "Job",
+#                       title = "K-Means Clustering Results with K = 2")
+# 
+# write.csv(df, "df.csv", row.names = FALSE)
 ```
 
 ```{r}
@@ -116,7 +117,7 @@ bank_full <- bank_full |>
 ```{r}
 # Optional: Take a random sample for speed
 set.seed(1)
-#bank_sample <- bank_full[sample(nrow(bank_full), 100), ]
+bank_sample <- bank_full[sample(nrow(bank_full), 100), ]
 
 # Scale the numeric dataset before clustering
 df_scaled <- scale(bank_sample)
@@ -146,6 +147,7 @@ ggplot(assignments, aes(x = balance, y = age, color = .cluster)) +
 
 ```{r}
 # Read the dataset and select predictors plus the target 'y'
+bank <- read.csv("bank-full.csv", sep = ";", header = TRUE)
 bank_class <- bank %>%
   select(job, marital, education, balance, y)
 
