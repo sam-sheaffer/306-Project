@@ -294,7 +294,7 @@ It shows that as the age goes up, you have more money in the bank account
 
 #Box Plot by jobs to see whether they have loans or not
 ```{r}
-bank_full_scaled <- scale(bank_full)
+#bank_full_scaled <- scale(bank_full)
 bank_blue_self <- bank %>%
   filter(job == "blue-collar" | job == "self-employed")
 
