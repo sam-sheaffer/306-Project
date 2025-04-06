@@ -7,7 +7,7 @@ date: "2025-04-01"
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 ```
 ```{r}
 library(ggplot2) 
@@ -143,6 +143,48 @@ ggplot(assignments, aes(x = balance, y = age, color = .cluster)) +
     color = "Cluster"
   ) +
   theme_minimal()
+```
+Least Squares:
+```{r}
+# Step 1: Convert categorical variables to factors
+bank_full$job <- as.factor(bank_full$job)
+bank_full$marital <- as.factor(bank_full$marital)
+bank_full$education <- as.factor(bank_full$education)
+bank_full$default <- as.factor(bank_full$default)
+bank_full$housing <- as.factor(bank_full$housing)
+bank_full$loan <- as.factor(bank_full$loan)  # Target variable
+
+# Step 2: Store the target variable separately
+loan_target <- bank_full$loan  # Save 'loan' before encoding
+
+# Step 3: Remove 'loan' before encoding dummy variables
+bank_full_dummies <- model.matrix(~ . - loan - 1, data = bank_full) %>% as.data.frame()
+
+# Step 4: Ensure that 'loan' is a factor when added back
+bank_full_dummies$loan <- as.factor(loan_target)  # Add 'loan' back as a factor
+
+# Step 5: Split into training (80%) and test (20%) sets
+set.seed(123)  
+trainIndex <- createDataPartition(bank_full_dummies$loan, p = 0.8, list = FALSE)
+train <- bank_full_dummies[trainIndex, ]
+test <- bank_full_dummies[-trainIndex, ]
+
+# Ensure the factor levels are consistent between train and test sets
+levels(test$loan) <- levels(train$loan)
+
+# Step 6: Fit a logistic regression model instead of least squares
+model <- glm(loan ~ ., data = train, family = binomial)
+
+# Step 7: Make predictions on the test set
+predictions <- predict(model, test, type = "response")
+predicted_class <- factor(ifelse(predictions > 0.5, "yes", "no"), levels = levels(test$loan))
+
+# Step 8: Evaluate performance using a confusion matrix
+conf_matrix <- confusionMatrix(predicted_class, test$loan)
+print(conf_matrix)
+
+
+
 ```
 
 ```{r}
