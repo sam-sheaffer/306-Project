@@ -33,7 +33,6 @@ bank_full$education <- as.numeric(factor(bank_full$education))
 bank_full$default <- as.numeric(factor(bank_full$default))
 bank_full$housing <- as.numeric(factor(bank_full$housing))
 bank_full$loan <- as.numeric(factor(bank_full$loan))
-  
 ```
 
 ```{r k-means}
@@ -74,32 +73,43 @@ ggplot(data = bank_full, aes(x = balance, y = age, color = loan)) +
   geom_point() + labs(color = "Loan",
                       title = "K-Means Clustering Results with K = 2")
 ```
-Clustering with education:
+
+#Clustering with Age and Balance 
 ```{r}
-# bank_full_scaled <- scale(bank_full)
-# bank_full_scaled <- bank_full_scaled[, -2]
-# 
-# km_out = kmeans(bank_full_scaled, 12, nstart = 20)
-# km_clusters = km_out$cluster
-# bank_full_scaled <- cbind(bank_full_scaled, enframe(bank_full$job))
-# bank_full_scaled <- bank_full_scaled[, -8]
-# df = table(km_clusters, bank_full_scaled$value)
-# 
-# 
-# 
-# assignments <- augment(km_out, bank_full_scaled)
-# 
-# assignments$value <- as.character(assignments$value)
-# ggplot(data = assignments, aes(x = balance, y = age, color = .cluster)) +
-#   geom_point() + labs(color = "Cluster Assignment",
-#                       title = "K-Means Clustering Results with K = 2",
-#                       shape = "loan")
-# 
-# ggplot(data = bank_full, aes(x = balance, y = age, color = job)) +
-#   geom_point() + labs(color = "Job",
-#                       title = "K-Means Clustering Results with K = 2")
-# 
-# write.csv(df, "df.csv", row.names = FALSE)
+# Load the dataset
+df <- read.csv("bank-full.csv", sep = ";")
+
+# Select relevant variables
+df_selected <- df %>% select(age, balance, education, job, marital, loan)
+
+# Convert categorical variables into factors
+df_selected$education <- as.factor(df_selected$education)
+df_selected$job <- as.factor(df_selected$job)
+df_selected$marital <- as.factor(df_selected$marital)
+df_selected$loan <- as.factor(df_selected$loan)
+
+# One-hot encoding for categorical variables
+df_encoded <- model.matrix(~ . -1, data = df_selected)
+
+# Standardize numerical variables
+df_scaled <- scale(df_encoded)
+
+# Apply K-means clustering with 3 clusters
+set.seed(42)
+kmeans_result <- kmeans(df_scaled, centers = 3, nstart = 10)
+
+# Add cluster labels back to original dataset
+df_selected$cluster <- as.factor(kmeans_result$cluster)
+
+# Scatter plot with Age (X-axis) and Balance (Y-axis)
+ggplot(df_selected, aes(x = age, y = balance, color = cluster)) +
+  geom_point(alpha = 0.6, size = 2) +
+  #facet_wrap(~ job) +
+  theme_minimal() +
+  labs(title = "Clusters Based on Age and Balance",
+       x = "Age",
+       y = "Bank Balance",
+       color = "Cluster")
 ```
 
 ```{r}
@@ -114,34 +124,39 @@ bank_full <- bank_full |>
                 ~ as.numeric(factor(.x))))
 ```
 
+#Clustering by Age and Balance Faceted by Job
 ```{r}
-# Optional: Take a random sample for speed
-set.seed(1)
-bank_sample <- bank_full[sample(nrow(bank_full), 100), ]
+library(dplyr)
+library(ggplot2)
 
-# Scale the numeric dataset before clustering
-df_scaled <- scale(bank_sample)
+# Read the dataset and select key variables
+bank <- read.csv("bank-full.csv", sep = ";", header = TRUE)
+bank_subset <- bank %>%
+  select(job, marital, education, age, balance, y)
 
-# Run K-means clustering
-km_out <- kmeans(df_scaled, centers = 2, nstart = 20)
-#km_out <- kmeans(bank_sample, centers = 2, nstart = 20)
-km_clusters <- km_out$cluster
-table(km_clusters, bank_sample$loan)
+# convert necessary columns
+bank_subset$job <- as.factor(bank_subset$job)
+bank_subset$age <- as.numeric(as.character(bank_subset$age))
+bank_subset$balance <- as.numeric(as.character(bank_subset$balance))
 
-# Add cluster assignments to dataset
-assignments <- augment(km_out, bank_sample)
-```
+# For illustration, let's run k-means clustering on the scaled numeric variables:
+# (We'll use age and balance for simplicity; you can include more variables as needed)
+set.seed(123)
+bank_cluster_data <- bank_subset %>% 
+  select(age, balance) %>% 
+  scale()
 
-```{r}
-# Visualize clusters
-ggplot(assignments, aes(x = balance, y = age, color = .cluster)) +
-  geom_point(size = 3, alpha = 0.7) +
-  labs(
-    title = "K-Means Clustering Results (k = 2)",
-    x = "Balance",
-    y = "Age",
-    color = "Cluster"
-  ) +
+km_out <- kmeans(bank_cluster_data, centers = 2, nstart = 10)
+bank_subset$cluster <- factor(km_out$cluster)
+
+# Create a facet wrap plot by job category
+ggplot(bank_subset, aes(x = balance, y = age, color = cluster)) +
+  geom_point(alpha = 0.5, size = 2) +
+  facet_wrap(~ job) +
+  labs(title = "Clustering by Age and Balance Faceted by Job",
+       x = "Balance",
+       y = "Age",
+       color = "Cluster") +
   theme_minimal()
 ```
 Least Squares:
@@ -187,6 +202,7 @@ print(conf_matrix)
 
 ```
 
+#ROC Curve for Least Squares Classification
 ```{r}
 # Read the dataset and select predictors plus the target 'y'
 bank <- read.csv("bank-full.csv", sep = ";", header = TRUE)
@@ -237,95 +253,47 @@ auc_val <- auc(roc_obj)
 print(auc_val)
 ```
 
+Least Squares:
 ```{r}
-# Read the dataset and select key variables (you can include age if needed)
-bank <- read.csv("bank-full.csv", sep = ";", header = TRUE)
-# Filter for the "management" job (change to the desired job category)
-bank_management <- bank %>%
-  filter(job == "management") %>%
-  select(marital, education, age, balance, y)
+# Step 1: Convert categorical variables to factors
+bank_full$job <- as.factor(bank_full$job)
+bank_full$marital <- as.factor(bank_full$marital)
+bank_full$education <- as.factor(bank_full$education)
+bank_full$default <- as.factor(bank_full$default)
+bank_full$housing <- as.factor(bank_full$housing)
+bank_full$loan <- as.factor(bank_full$loan)  # Target variable
 
-bank_management <- bank_management[sample(nrow(bank_management), 100), ]
+# Step 2: Store the target variable separately
+loan_target <- bank_full$loan  # Save 'loan' before encoding
 
-# Convert categorical variables to numeric
-bank_management$marital <- as.numeric(factor(bank_management$marital))
-bank_management$education <- as.numeric(factor(bank_management$education))
-bank_management$age <- as.numeric(factor(bank_management$age))
-bank_management$y <- as.numeric(factor(bank_management$y))  # Assuming y is the loan status
+# Step 3: Remove 'loan' before encoding dummy variables, but keep the intercept
+bank_full_dummies <- model.matrix(~ . - loan, data = bank_full) %>% as.data.frame()
 
-# Scale the data to ensure all features contribute equally
-bank_management_scaled <- scale(bank_management)
+# Step 4: Ensure that 'loan' is a factor when added back
+bank_full_dummies$loan <- as.factor(loan_target)
 
+# Step 5: Split into training (80%) and test (20%) sets
+set.seed(123)  
+trainIndex <- createDataPartition(bank_full_dummies$loan, p = 0.8, list = FALSE)
+train <- bank_full_dummies[trainIndex, ]
+test <- bank_full_dummies[-trainIndex, ]
 
-# Perform k-means clustering with k = 2 (you can change centers as needed)
-set.seed(123)
-km_mgmt <- kmeans(bank_management_scaled, centers = 2, nstart = 20)
+# Ensure the factor levels are consistent between train and test sets
+levels(test$loan) <- levels(train$loan)
 
-# Add the cluster assignments to the subset
-bank_management$cluster <- factor(km_mgmt$cluster)
+# Step 6: Fit a logistic regression model
+model <- glm(loan ~ ., data = train, family = binomial)
+summary(model)
 
-# Visualize the clustering results using a scatter plot
-ggplot(bank_management, aes(x = balance, y = age, color = cluster)) +
-  geom_point(size = 3, alpha = 0.8) +
-  labs(title = "K-means Clustering for Management Job", 
-       x = "Balance",
-       y = "age",
-       color = "Cluster") +
-  theme_minimal()
+# Step 7: Make predictions on the test set
+predictions <- predict(model, test, type = "response")
+predicted_class <- factor(ifelse(predictions > 0.5, "yes", "no"), levels = levels(test$loan))
+
+# Step 8: Evaluate performance using a confusion matrix
+conf_matrix <- confusionMatrix(predicted_class, test$loan)
+print(conf_matrix)
 ```
 
-```{r}
-library(dplyr)
-bank_management %>%
-  group_by(cluster) %>%
-  summarize(
-    avg_age       = mean(age),
-    avg_balance   = mean(balance),
-    avg_education = mean(education),  # if you included it in the model
-    prop_loan     = mean(y)          # if y is numeric 0/1
-  )
-```
-
-```{r}
-library(dplyr)
-library(ggplot2)
-
-# Read the dataset and select key variables
-bank <- read.csv("bank-full.csv", sep = ";", header = TRUE)
-bank_subset <- bank %>%
-  select(job, marital, education, age, balance, y)
-
-# Convert necessary columns
-# We'll convert job to a factor for faceting, and also make sure age and balance are numeric.
-bank_subset$job <- as.factor(bank_subset$job)
-bank_subset$age <- as.numeric(as.character(bank_subset$age))
-bank_subset$balance <- as.numeric(as.character(bank_subset$balance))
-# Recode loan status if needed; here we assume y is already meaningful or recode later
-
-# Optional: if you want to include only a subset for performance, uncomment the next line:
-#bank_subset <- bank_subset %>% sample_n(1000)
-
-# If you have clustering results (say, from k-means) on the whole dataset, merge them back.
-# For illustration, let's run k-means clustering on the scaled numeric variables:
-# (We'll use age and balance for simplicity; you can include more variables as needed)
-set.seed(123)
-bank_cluster_data <- bank_subset %>% 
-  select(age, balance) %>% 
-  scale()
-
-km_out <- kmeans(bank_cluster_data, centers = 2, nstart = 20)
-bank_subset$cluster <- factor(km_out$cluster)
-
-# Create a facet wrap plot by job category
-ggplot(bank_subset, aes(x = balance, y = age, color = cluster)) +
-  geom_point(alpha = 0.7, size = 2) +
-  facet_wrap(~ job) +
-  labs(title = "Clustering by Age and Balance Faceted by Job",
-       x = "Balance",
-       y = "Age",
-       color = "Cluster") +
-  theme_minimal()
-```
 
 #Linear Regression Model of Balance vs Age
 ```{r}
@@ -341,7 +309,7 @@ bank$education <- as.factor(bank$education)
 bank$y <- as.factor(bank$y)  # loan status
 
 set.seed(2)
-bank <- bank[sample(nrow(bank), 300), ]
+bank <- bank[sample(nrow(bank), 400), ]
 
 lm_bank <- bank %>%
   filter(balance < 5000)
@@ -356,9 +324,9 @@ summary(model)
 ggplot(lm_bank, aes(x = age, y = balance)) +
   geom_point(alpha = 0.5) +
   geom_smooth(method = "lm", color = "blue") +
-  labs(title = "Linear Regression:  Balance vs. Age",
-       x = "Balance",
-       y = "Age") +
+  labs(title = "Linear Regression:  Age vs. Balance",
+       x = "Age",
+       y = "Balance") +
   theme_minimal()
 ```
 
@@ -368,47 +336,35 @@ It shows that as the age goes up, you have more money in the bank account
 
 #Box Plot by jobs to see whether they have loans or not
 ```{r}
-bank_self_employed <- bank %>%
-  filter(job == "self-employed")
-
-bank_blue_color <- bank %>%
-  filter(job == "blue-collar")
-
-ggplot(bank_self_employed, aes(balance, y)) + 
-  geom_boxplot() + 
-  labs(title = "Box Plot of Loan vs. Balance of Self-Employed", x = "Loans", y = "Balance")
-
-
-ggplot(bank_blue_color, aes(balance, y)) + 
-  geom_boxplot() + 
-  labs(title = "Box Plot of Loan vs. Balance of Blue Colored", x = "Loans", y = "Balance")
-
+#bank_full_scaled <- scale(bank_full)
 bank_blue_self <- bank %>%
   filter(job == "blue-collar" | job == "self-employed")
 
-ggplot(bank_blue_self, aes(y, balance, fill=y)) + 
+ggplot(bank_blue_self, aes(loan, balance, fill=loan)) + 
   geom_boxplot() + 
   facet_wrap(~job) +
   labs(title = "Box Plot of Loan vs. Balance of Blue Colored", x = "Loans", y = "Balance")
 ```
 
 ```{r}
-bank_self_employed <- bank %>%
-  filter(job == "marital")
+bank_marital <- bank %>%
+  mutate(marital = case_when(
+    marital == "married" ~ "married",
+    marital %in% c("divorced", "single") ~ "not married",
+    TRUE ~ marital  # For any other value, keep it unchanged
+  ))
 
-bank_blue_color <- bank %>%
-  filter(job == "blue-collar")
-
-ggplot(bank, aes(age, y)) + 
+ggplot(bank, aes(age, loan)) + 
   geom_boxplot() +
   #+geom_point(shape = bank$marital)
   geom_jitter(shape = bank$marital, size=1.5, alpha=0.9) +
   labs(shape = "Marital Status") 
 
-ggplot(bank, aes(x = y, y = age)) +
+
+ggplot(bank_marital, aes(x = loan, y = age)) +
   # One boxplot per loan status (yes/no)
   geom_boxplot(outlier.shape = NA) +
-  geom_jitter(aes(shape = marital), 
+  geom_jitter(aes(color = marital), 
               width = 0.3,   # spread out points horizontally
               size = 2, 
               alpha = 0.8) +
@@ -417,9 +373,66 @@ ggplot(bank, aes(x = y, y = age)) +
        shape = "Marital Status",
        x = "Loan Status",
        y = "Age")  + 
-  scale_shape_manual(values = c("divorced" = 1, "married" = 2, "single" = 3))
+  scale_shape_manual(values = c("married" = 1, "not married" = 2))
 ```
 Single have higher percentage of having loan than married. 
 
+The question sounds like more classification rather than clustering.
 
-The question sounds like more classification rather than clustering. 
+```{r}
+# Read in the dataset
+bank <- read.csv("bank-full.csv", sep = ";", header = TRUE)
+
+# Select key variables including "loan"
+bank_model <- bank %>%
+  select(age, job, marital, education, balance, loan)
+
+# Recode loan status to numeric: 1 for "yes" and 0 for "no"
+bank_model$loan <- ifelse(bank_model$loan == "yes", 1, 0)
+
+# Convert categorical predictors to numeric via factor coding
+bank_model$job <- as.numeric(factor(bank_model$job))
+bank_model$marital <- as.numeric(factor(bank_model$marital))
+bank_model$education <- as.numeric(factor(bank_model$education))
+
+# Ensure age and balance are numeric
+bank_model$age <- as.numeric(bank_model$age)
+bank_model$balance <- as.numeric(bank_model$balance)
+
+# Split the data: 70% training and 30% testing
+set.seed(42)
+trainIndex <- createDataPartition(bank_model$loan, p = 0.7, list = FALSE)
+train_data <- bank_model[trainIndex, ]
+test_data  <- bank_model[-trainIndex, ]
+
+# Fit a linear regression model (least squares classifier) on the training set
+model_ls <- lm(loan ~ age + job + marital + education + balance, data = train_data)
+summary(model_ls)
+
+# Predict on training and test sets
+y_hat_train <- predict(model_ls, newdata = train_data)
+y_hat_test  <- predict(model_ls, newdata = test_data)
+
+# Apply a decision threshold of 0.5 to obtain class predictions
+y_pred_train <- ifelse(y_hat_train >= 0.5, 1, 0)
+y_pred_test  <- ifelse(y_hat_test  >= 0.5, 1, 0)
+
+# Generate confusion matrices to evaluate performance
+train_conf <- confusionMatrix(as.factor(y_pred_train), as.factor(train_data$loan))
+test_conf  <- confusionMatrix(as.factor(y_pred_test), as.factor(test_data$loan))
+print(train_conf)
+print(test_conf)
+
+# Generate and plot an ROC curve for the test predictions
+roc_obj <- roc(test_data$loan, y_hat_test)
+plot(roc_obj, main = "ROC Curve for Least Squares Classification")
+auc_val <- auc(roc_obj)
+print(auc_val)
+```
+
+```{r}
+bank <- read.csv("bank-full.csv", sep = ";", header = TRUE)
+
+ggplot(bank, aes(x=age)) +
+  geom_bar()
+```
