@@ -294,6 +294,34 @@ conf_matrix <- confusionMatrix(predicted_class, test$loan)
 print(conf_matrix)
 ```
 
+```{r}
+# Step 1: Set up k-fold cross-validation (here, k = 10)
+set.seed(123)  # for reproducibility
+train_control <- trainControl(method = "cv", number = 10)
+
+# Step 2: Train the logistic regression model using cross-validation
+model_cv <- train(
+  loan ~ ., 
+  data = bank_full_dummies, 
+  method = "glm", 
+  family = "binomial", 
+  trControl = train_control
+)
+
+# Step 3: Output the cross-validation results
+print(model_cv)
+```
+
+
+
+
+
+
+
+
+
+
+
 
 #Linear Regression Model of Balance vs Age
 ```{r}
@@ -436,3 +464,43 @@ bank <- read.csv("bank-full.csv", sep = ";", header = TRUE)
 ggplot(bank, aes(x=age)) +
   geom_bar()
 ```
+
+
+Bar Chart for Confusion Matrix
+```{r}
+# Define your confusion matrix values
+TP <- 21
+TN <- 7579
+FP <- 14
+FN <- 1427
+
+
+# Create a data frame
+confusion_data <- data.frame(
+  Category = c("True Positive", "True Negative", "False Positive", "False Negative"),
+  Count = c(TP, TN, FP, FN)
+)
+
+# Sort by Count ascending
+confusion_data <- confusion_data[order(confusion_data$Count), ]
+
+# Set Category as a factor to preserve the order
+confusion_data$Category <- factor(confusion_data$Category, levels = confusion_data$Category)
+
+# Create a horizontal bar chart
+ggplot(confusion_data, aes(x = Category, y = Count, fill = Category)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +  # Makes bars horizontal
+  theme_minimal() +
+  labs(title = "Confusion Matrix Breakdown",
+       x = "Category",
+       y = "Count") +
+  scale_fill_manual(values = c(
+    "True Positive" = "#4CAF50",
+    "True Negative" = "#2196F3",
+    "False Positive" = "#FFC107",
+    "False Negative" = "#F44336"
+  )) +
+  theme(legend.position = "none")
+```
+
